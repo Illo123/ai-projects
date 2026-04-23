@@ -1,277 +1,368 @@
 // ===========================
-// KI CHATBOT — INTERACTIONS
+// MATHEWES — STUDIO INTERACTIONS
 // ===========================
 
-const chatArea    = document.getElementById('chatArea');
-const messagesEl  = document.getElementById('messages');
-const welcome     = document.getElementById('welcome');
-const userInput   = document.getElementById('userInput');
-const sendBtn     = document.getElementById('sendBtn');
-const newChatBtn  = document.getElementById('newChatBtn');
-const chatHistory = document.getElementById('chatHistory');
+gsap.registerPlugin(ScrollTrigger);
 
-let conversationHistory = [];
-let isStreaming = false;
-let chatSessions = [];
-let currentSessionId = null;
+// Prevent scroll during load
+document.body.style.overflow = 'hidden';
 
 // ===========================
-// TEXTAREA AUTO-RESIZE
+// LENIS SMOOTH SCROLL
 // ===========================
-userInput.addEventListener('input', () => {
-  userInput.style.height = 'auto';
-  userInput.style.height = Math.min(userInput.scrollHeight, 200) + 'px';
-  sendBtn.disabled = userInput.value.trim() === '' || isStreaming;
+const lenis = new Lenis({
+  duration: 1.3,
+  easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+});
+
+// Official GSAP + Lenis integration
+gsap.ticker.add(time => lenis.raf(time * 1000));
+gsap.ticker.lagSmoothing(0);
+lenis.on('scroll', ScrollTrigger.update);
+
+// ===========================
+// LOADER
+// ===========================
+const loaderLetters = document.querySelectorAll('.loader-logo span');
+const loaderProgress = document.getElementById('loaderProgress');
+const loaderSub = document.querySelector('.loader-sub');
+const loader = document.getElementById('loader');
+
+// Animate letters in staggered
+gsap.to(loaderLetters, {
+  opacity: 1,
+  y: 0,
+  duration: 0.6,
+  ease: 'power3.out',
+  stagger: 0.05,
+  delay: 0.2,
+});
+
+gsap.to(loaderSub, {
+  opacity: 1,
+  duration: 0.6,
+  delay: 0.9,
+});
+
+// Progress bar fill
+requestAnimationFrame(() => {
+  loaderProgress.style.width = '100%';
+});
+
+// Hide loader after page load
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    gsap.to(loader, {
+      opacity: 0,
+      duration: 0.8,
+      ease: 'power2.inOut',
+      onComplete: () => {
+        loader.style.visibility = 'hidden';
+        document.body.style.overflow = '';
+        introAnimations();
+      },
+    });
+  }, 1400);
 });
 
 // ===========================
-// SEND ON ENTER (Shift+Enter = neue Zeile)
+// HERO INTRO ANIMATIONS
 // ===========================
-userInput.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    if (!sendBtn.disabled) sendMessage();
+function introAnimations() {
+  const tl = gsap.timeline();
+
+  // Eyebrow — slides down from above
+  tl.fromTo('.hero-eyebrow',
+    { opacity: 0, y: -14 },
+    { opacity: 1, y: 0, duration: 1, ease: 'power3.out' },
+    0.1
+  );
+
+  // Title lines slide up — wrap each line content in a div first
+  const titleLines = document.querySelectorAll('.title-line');
+  titleLines.forEach((line, i) => {
+    const inner = document.createElement('div');
+    inner.style.display = 'block';
+    inner.innerHTML = line.innerHTML;
+    line.innerHTML = '';
+    line.appendChild(inner);
+
+    tl.from(inner, {
+      y: '105%',
+      duration: 1.1,
+      ease: 'power4.out',
+    }, 0.2 + i * 0.1);
+  });
+
+  // Hero desc
+  tl.fromTo('.hero-desc p',
+    { opacity: 0, y: 16 },
+    { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out' },
+    0.7
+  );
+
+  // Discover button
+  tl.fromTo('.btn-circle',
+    { opacity: 0, y: 12 },
+    { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out' },
+    0.85
+  );
+
+  // Stats
+  tl.fromTo('.hero-stats',
+    { opacity: 0 },
+    { opacity: 1, duration: 1, ease: 'power2.out', onComplete: animateCounters },
+    0.9
+  );
+}
+
+// ===========================
+// COUNTER ANIMATION
+// ===========================
+function animateCounters() {
+  document.querySelectorAll('.count').forEach(el => {
+    const target = parseInt(el.dataset.target, 10);
+    const duration = 2000;
+    const start = performance.now();
+
+    function tick(now) {
+      const progress = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 4);
+      el.textContent = Math.round(eased * target);
+      if (progress < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  });
+}
+
+// ===========================
+// NAV SCROLL
+// ===========================
+const nav = document.getElementById('nav');
+window.addEventListener('scroll', () => {
+  nav.classList.toggle('scrolled', window.scrollY > 60);
+}, { passive: true });
+
+// ===========================
+// MOBILE MENU
+// ===========================
+const burger     = document.getElementById('burger');
+const mobileMenu = document.getElementById('mobileMenu');
+const burgerSpans = burger.querySelectorAll('span');
+let menuOpen = false;
+
+burger.addEventListener('click', () => {
+  menuOpen = !menuOpen;
+  mobileMenu.classList.toggle('open', menuOpen);
+
+  if (menuOpen) {
+    burgerSpans[0].style.transform = 'translateY(7px) rotate(45deg)';
+    burgerSpans[1].style.transform = 'translateY(-7px) rotate(-45deg)';
+    lenis.stop();
+  } else {
+    burgerSpans[0].style.transform = '';
+    burgerSpans[1].style.transform = '';
+    lenis.start();
   }
 });
 
-sendBtn.addEventListener('click', sendMessage);
-
-// ===========================
-// SUGGESTION CHIPS
-// ===========================
-document.querySelectorAll('.suggestion').forEach(btn => {
-  btn.addEventListener('click', () => {
-    userInput.value = btn.dataset.text;
-    userInput.dispatchEvent(new Event('input'));
-    sendMessage();
+document.querySelectorAll('.mobile-link').forEach(link => {
+  link.addEventListener('click', () => {
+    menuOpen = false;
+    mobileMenu.classList.remove('open');
+    burgerSpans[0].style.transform = '';
+    burgerSpans[1].style.transform = '';
+    lenis.start();
   });
 });
 
 // ===========================
-// NEUER CHAT
+// MAGNETIC BUTTONS
 // ===========================
-newChatBtn.addEventListener('click', startNewChat);
-
-function startNewChat() {
-  if (conversationHistory.length > 0) {
-    saveSession();
-  }
-  conversationHistory = [];
-  currentSessionId = null;
-  messagesEl.innerHTML = '';
-  welcome.style.display = 'flex';
-  messagesEl.style.display = 'none';
-  userInput.value = '';
-  userInput.style.height = 'auto';
-  sendBtn.disabled = true;
-}
-
-function saveSession() {
-  if (conversationHistory.length === 0) return;
-  const firstMsg = conversationHistory.find(m => m.role === 'user');
-  if (!firstMsg) return;
-
-  const label = firstMsg.content.slice(0, 42) + (firstMsg.content.length > 42 ? '…' : '');
-  const id = Date.now();
-
-  chatSessions.unshift({ id, label, history: [...conversationHistory] });
-  currentSessionId = id;
-  renderHistory();
-}
-
-function renderHistory() {
-  const empty = chatHistory.querySelector('.history-empty');
-  if (empty) empty.remove();
-
-  chatHistory.innerHTML = '';
-  chatSessions.forEach(session => {
-    const item = document.createElement('div');
-    item.className = 'history-item' + (session.id === currentSessionId ? ' active' : '');
-    item.textContent = session.label;
-    item.addEventListener('click', () => loadSession(session.id));
-    chatHistory.appendChild(item);
+document.querySelectorAll('.magnetic').forEach(el => {
+  el.addEventListener('mousemove', e => {
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width  / 2;
+    const cy = rect.top  + rect.height / 2;
+    const dx = (e.clientX - cx) * 0.35;
+    const dy = (e.clientY - cy) * 0.35;
+    gsap.to(el, { x: dx, y: dy, duration: 0.5, ease: 'power3.out' });
   });
-}
 
-function loadSession(id) {
-  const session = chatSessions.find(s => s.id === id);
-  if (!session) return;
-  currentSessionId = id;
-  conversationHistory = [...session.history];
-  renderHistory();
-  rebuildMessages();
-}
-
-function rebuildMessages() {
-  welcome.style.display = 'none';
-  messagesEl.style.display = 'flex';
-  messagesEl.innerHTML = '';
-  conversationHistory.forEach(msg => {
-    addMessage(msg.role, msg.content, false);
+  el.addEventListener('mouseleave', () => {
+    gsap.to(el, { x: 0, y: 0, duration: 0.7, ease: 'elastic.out(1, 0.5)' });
   });
-  scrollToBottom();
-}
+});
 
 // ===========================
-// SEND MESSAGE
+// SCROLL ANIMATIONS — ABOUT SECTION
 // ===========================
-async function sendMessage() {
-  const text = userInput.value.trim();
-  if (!text || isStreaming) return;
-
-  // Zeige Chat-Bereich, verstecke Welcome
-  if (welcome.style.display !== 'none' || messagesEl.style.display === 'none') {
-    welcome.style.display = 'none';
-    messagesEl.style.display = 'flex';
-  }
-
-  // User-Nachricht hinzufügen
-  addMessage('user', text);
-  conversationHistory.push({ role: 'user', content: text });
-
-  // Input zurücksetzen
-  userInput.value = '';
-  userInput.style.height = 'auto';
-  sendBtn.disabled = true;
-  isStreaming = true;
-
-  // Typing indicator
-  const typingEl = addTypingIndicator();
-  scrollToBottom();
-
-  // Streaming response
-  try {
-    const response = await fetch('/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messages: conversationHistory }),
+ScrollTrigger.create({
+  trigger: '.section-about',
+  start: 'top 75%',
+  once: true,
+  onEnter: () => {
+    // Title lines
+    const aboutLines = document.querySelectorAll('.about-title .split-line');
+    aboutLines.forEach((line, i) => {
+      const inner = document.createElement('div');
+      inner.style.display = 'block';
+      inner.innerHTML = line.innerHTML;
+      line.innerHTML = '';
+      line.appendChild(inner);
+      gsap.from(inner, {
+        y: '110%',
+        duration: 1,
+        ease: 'power4.out',
+        delay: i * 0.1,
+      });
     });
 
-    typingEl.remove();
-
-    const assistantEl = addMessage('assistant', '', false);
-    const textEl = assistantEl.querySelector('.msg-text');
-    const cursor = document.createElement('span');
-    cursor.className = 'cursor-blink';
-    textEl.appendChild(cursor);
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let fullText = '';
-    let buffer = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop();
-
-      for (const line of lines) {
-        if (!line.startsWith('data: ')) continue;
-        const payload = line.slice(6);
-        if (payload === '[DONE]') break;
-
-        try {
-          const { text: chunk } = JSON.parse(payload);
-          fullText += chunk;
-          textEl.innerHTML = renderMarkdown(fullText);
-          textEl.appendChild(cursor);
-          scrollToBottom();
-        } catch {}
-      }
-    }
-
-    cursor.remove();
-    textEl.innerHTML = renderMarkdown(fullText);
-    conversationHistory.push({ role: 'assistant', content: fullText });
-
-  } catch (err) {
-    typingEl?.remove();
-    addMessage('assistant', '⚠️ Fehler beim Verbinden. Ist der Server gestartet?', false);
-  }
-
-  isStreaming = false;
-  sendBtn.disabled = userInput.value.trim() === '';
-  scrollToBottom();
-}
+    // About items stagger
+    gsap.from('.about-item', {
+      opacity: 0,
+      y: 30,
+      duration: 0.8,
+      stagger: 0.1,
+      ease: 'power3.out',
+      delay: 0.3,
+    });
+  },
+});
 
 // ===========================
-// DOM HELPERS
+// SCROLL ANIMATIONS — STATEMENT
 // ===========================
-function addMessage(role, content, animate = true) {
-  const isUser = role === 'user';
+ScrollTrigger.create({
+  trigger: '.statement',
+  start: 'top 70%',
+  once: true,
+  onEnter: () => {
+    const text = document.querySelector('.statement-text');
+    if (!text) return;
 
-  const msg = document.createElement('div');
-  msg.className = `msg ${role}`;
-  if (!animate) msg.style.animation = 'none';
+    // Split text into word spans manually
+    const words = text.textContent.trim().split(/\s+/);
+    text.innerHTML = words
+      .map(w => `<span style="display:inline-block;overflow:hidden;vertical-align:top"><span class="sw" style="display:inline-block">${w}&nbsp;</span></span>`)
+      .join('');
 
-  msg.innerHTML = `
-    <div class="msg-avatar">${isUser ? 'Du' : 'AI'}</div>
-    <div class="msg-content">
-      <div class="msg-name">${isUser ? 'Du' : 'Claude'}</div>
-      <div class="msg-text">${isUser ? escapeHtml(content) : renderMarkdown(content)}</div>
-    </div>
-  `;
-
-  messagesEl.appendChild(msg);
-  if (animate) scrollToBottom();
-  return msg;
-}
-
-function addTypingIndicator() {
-  const msg = document.createElement('div');
-  msg.className = 'msg assistant';
-  msg.innerHTML = `
-    <div class="msg-avatar">AI</div>
-    <div class="msg-content">
-      <div class="msg-name">Claude</div>
-      <div class="typing-indicator">
-        <span></span><span></span><span></span>
-      </div>
-    </div>
-  `;
-  messagesEl.appendChild(msg);
-  return msg;
-}
-
-function scrollToBottom() {
-  chatArea.scrollTo({ top: chatArea.scrollHeight, behavior: 'smooth' });
-}
+    gsap.from('.sw', {
+      y: '110%',
+      opacity: 0,
+      duration: 0.7,
+      stagger: 0.03,
+      ease: 'power3.out',
+    });
+    gsap.from('.statement-author', {
+      opacity: 0,
+      y: 12,
+      duration: 0.8,
+      ease: 'power3.out',
+      delay: words.length * 0.03 + 0.2,
+    });
+  },
+});
 
 // ===========================
-// MARKDOWN RENDERER (minimal)
+// SCROLL ANIMATIONS — LOCATIONS
 // ===========================
-function renderMarkdown(text) {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    // Code-Blöcke
-    .replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
-    // Inline-Code
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    // Fett
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    // Kursiv
-    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-    // Überschriften
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    // Listen
-    .replace(/^- (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
-    // Zeilenumbrüche
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/\n/g, '<br>');
-}
+ScrollTrigger.create({
+  trigger: '.section-locations',
+  start: 'top 75%',
+  once: true,
+  onEnter: () => {
+    const locLines = document.querySelectorAll('.locations-title .split-line');
+    locLines.forEach((line, i) => {
+      const inner = document.createElement('div');
+      inner.style.display = 'block';
+      inner.innerHTML = line.innerHTML;
+      line.innerHTML = '';
+      line.appendChild(inner);
+      gsap.from(inner, {
+        y: '110%',
+        duration: 1,
+        ease: 'power4.out',
+        delay: i * 0.12,
+      });
+    });
 
-function escapeHtml(text) {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\n/g, '<br>');
+    gsap.from('.loc-item', {
+      opacity: 0,
+      x: -20,
+      duration: 0.7,
+      stagger: 0.12,
+      ease: 'power3.out',
+      delay: 0.3,
+    });
+  },
+});
+
+// ===========================
+// SCROLL ANIMATIONS — CONTACT
+// ===========================
+ScrollTrigger.create({
+  trigger: '.section-contact',
+  start: 'top 75%',
+  once: true,
+  onEnter: () => {
+    const ctLines = document.querySelectorAll('.contact-title .split-line');
+    ctLines.forEach((line, i) => {
+      const inner = document.createElement('div');
+      inner.style.display = 'block';
+      inner.innerHTML = line.innerHTML;
+      line.innerHTML = '';
+      line.appendChild(inner);
+      gsap.from(inner, {
+        y: '110%',
+        duration: 1,
+        ease: 'power4.out',
+        delay: i * 0.12,
+      });
+    });
+
+    gsap.from('.contact-left > p', {
+      opacity: 0,
+      y: 16,
+      duration: 0.8,
+      ease: 'power3.out',
+      delay: 0.4,
+    });
+
+    gsap.from('.contact-link', {
+      opacity: 0,
+      x: 20,
+      duration: 0.7,
+      stagger: 0.1,
+      ease: 'power3.out',
+      delay: 0.3,
+    });
+  },
+});
+
+// ===========================
+// HORIZONTAL SCROLL PARALLAX — HERO TITLE
+// ===========================
+gsap.to('.hero-title', {
+  y: 80,
+  ease: 'none',
+  scrollTrigger: {
+    trigger: '.hero',
+    start: 'top top',
+    end: 'bottom top',
+    scrub: 1.5,
+  },
+});
+
+// ===========================
+// MARQUEE — PAUSE ON HOVER
+// ===========================
+const marqueeEl = document.querySelector('.marquee-content');
+if (marqueeEl) {
+  marqueeEl.closest('.marquee-wrap').addEventListener('mouseenter', () => {
+    marqueeEl.style.animationPlayState = 'paused';
+  });
+  marqueeEl.closest('.marquee-wrap').addEventListener('mouseleave', () => {
+    marqueeEl.style.animationPlayState = 'running';
+  });
 }
