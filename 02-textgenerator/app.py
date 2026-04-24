@@ -94,7 +94,7 @@ Nutze einen passenden Betreff. Achte auf korrekte Grußformel und Unterschrift."
 
     def stream():
         with client.messages.stream(
-            model='claude-opus-4-7',
+            model='claude-haiku-4-5-20251001',
             max_tokens=1200,
             messages=[{'role': 'user', 'content': prompt}],
         ) as s:
