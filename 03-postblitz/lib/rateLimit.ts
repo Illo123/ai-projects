@@ -1,8 +1,8 @@
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 
-export const HOUR_LIMIT = 2;
-export const DAY_LIMIT = 6;
+export const HOUR_LIMIT = 10;
+export const DAY_LIMIT = 30;
 
 type Hit = {
   hourCount: number;

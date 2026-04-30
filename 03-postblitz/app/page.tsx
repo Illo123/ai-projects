@@ -4,7 +4,7 @@ import { useState } from "react";
 import ProfileForm from "@/components/ProfileForm";
 import PostInput from "@/components/PostInput";
 import PostOutput from "@/components/PostOutput";
-import type { Profile } from "@/lib/prompt";
+import { splitVariants, type Profile } from "@/lib/prompt";
 
 export default function Page() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -24,14 +24,38 @@ export default function Page() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ profile, thema }),
       });
-      const data = (await res.json()) as {
-        varianten?: string[];
-        error?: string;
-      };
+
       if (!res.ok) {
+        const data = (await res.json()) as { error?: string };
         throw new Error(data.error ?? `HTTP ${res.status}`);
       }
-      setVarianten(data.varianten ?? []);
+
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder();
+      let accumulated = "";
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const payload = line.slice(6);
+          if (payload === "[DONE]") continue;
+          const parsed = JSON.parse(payload) as {
+            text?: string;
+            error?: string;
+          };
+          if (parsed.error) throw new Error(parsed.error);
+          if (parsed.text) {
+            accumulated += parsed.text;
+            setVarianten(splitVariants(accumulated));
+          }
+        }
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unbekannter Fehler");
     } finally {

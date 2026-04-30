@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import {
   buildSystemPrompt,
   buildUserPrompt,
-  splitVariants,
   type GenerateInput,
 } from "@/lib/prompt";
 import {
@@ -44,17 +43,47 @@ export async function POST(req: Request) {
     );
   }
 
-  const message = await client.messages.create({
-    model: "claude-sonnet-4-6",
+  const stream = client.messages.stream({
+    model: "claude-haiku-4-5",
     max_tokens: 2048,
     system: buildSystemPrompt(body.profile),
     messages: [{ role: "user", content: buildUserPrompt(body.thema) }],
   });
 
-  const text = message.content
-    .filter((b): b is Anthropic.TextBlock => b.type === "text")
-    .map((b) => b.text)
-    .join("\n");
+  const encoder = new TextEncoder();
+  const sseBody = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      try {
+        for await (const event of stream) {
+          if (
+            event.type === "content_block_delta" &&
+            event.delta.type === "text_delta"
+          ) {
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({ text: event.delta.text })}\n\n`,
+              ),
+            );
+          }
+        }
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Stream-Fehler";
+        controller.enqueue(
+          encoder.encode(`data: ${JSON.stringify({ error: msg })}\n\n`),
+        );
+      } finally {
+        controller.close();
+      }
+    },
+  });
 
-  return NextResponse.json({ varianten: splitVariants(text) });
+  return new Response(sseBody, {
+    headers: {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      "X-Accel-Buffering": "no",
+      Connection: "keep-alive",
+    },
+  });
 }

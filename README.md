@@ -17,7 +17,7 @@ liegt im `localStorage` des Browsers, der Server ist zustandslos.
 - Quellcode: [`03-postblitz/`](./03-postblitz)
 - Tech: Next.js 16 (App Router), React 19, TypeScript, Anthropic SDK
 - Modell: Claude Sonnet 4.6 (ein Roundtrip pro Anfrage, kein Streaming)
-- Schutz: Rate-Limit (2 Anfragen/h, 6/d pro IP) + Spending-Limit im Anthropic-Konto
+- Schutz: Rate-Limit (10 Anfragen/h, 30/d pro IP) + Spending-Limit im Anthropic-Konto
 
 > Gehostet auf Render Free Tier. Nach 15 Min Inaktivität schläft der Service —
 > der erste Request nach langer Pause kann ~30 Sekunden dauern.

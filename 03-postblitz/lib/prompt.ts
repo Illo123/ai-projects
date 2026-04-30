@@ -19,9 +19,14 @@ Profil:
 - Zielgruppe: ${profile.zielgruppe}
 - Tonalität: ${profile.tonalitaet}
 
-Gib genau drei Varianten zurück, getrennt durch eine Zeile mit ---.
-Keine Einleitung, keine Nummerierung, keine Hashtags am Ende erklären.
-Jede Variante 80-150 Wörter, eigenständig lesbar.`;
+Regeln:
+- Erster Satz ist ein Hook — kein "Heute möchte ich...", kein "Ich freue mich..."
+- Kurze Absätze, max. 2 Sätze pro Absatz
+- Kein Corporate-Sprech
+- 3-5 relevante Hashtags am Ende, keine mehr
+- Jede Variante 80-120 Wörter
+- Gib genau drei Varianten zurück, getrennt durch eine Zeile mit ---
+- Keine Einleitung, keine Nummerierung außerhalb der Varianten`;
 }
 
 export function buildUserPrompt(thema: string): string {
