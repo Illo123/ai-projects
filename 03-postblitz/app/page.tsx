@@ -41,7 +41,10 @@ export default function Page() {
 
   return (
     <main>
-      <h1>PostBlitz</h1>
+      <header className="app-header">
+        <h1 className="brand">PostBlitz</h1>
+        <span className="brand-tag">LinkedIn-Posts in deinem Ton</span>
+      </header>
       <ProfileForm onChange={setProfile} />
       <PostInput
         thema={thema}
@@ -49,7 +52,7 @@ export default function Page() {
         onSubmit={generate}
         loading={loading}
       />
-      {error && <section style={{ color: "#b00" }}>Fehler: {error}</section>}
+      {error && <div className="alert">{error}</div>}
       <PostOutput varianten={varianten} />
     </main>
   );

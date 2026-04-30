@@ -18,17 +18,21 @@ export default function PostOutput({ varianten }: Props) {
   }
 
   return (
-    <section>
-      <h2>Varianten</h2>
+    <section className="variants">
+      <h2 className="variants-title">Drei Varianten</h2>
       {varianten.map((text, i) => (
         <article key={i} className="variant">
-          <header>
-            <span>Variante {i + 1}</span>
-            <button onClick={() => copy(text, i)}>
+          <header className="variant-header">
+            <span className="variant-pill">Variante {i + 1}</span>
+            <button
+              className="btn-secondary"
+              data-state={kopiert === i ? "copied" : undefined}
+              onClick={() => copy(text, i)}
+            >
               {kopiert === i ? "Kopiert" : "Kopieren"}
             </button>
           </header>
-          {text}
+          <div className="variant-body">{text}</div>
         </article>
       ))}
     </section>

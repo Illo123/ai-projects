@@ -14,19 +14,34 @@ export default function PostInput({
   loading,
 }: Props) {
   return (
-    <section>
-      <h2>Heute</h2>
-      <label>
-        Worum geht es heute?
+    <section className="card">
+      <div className="card-header">
+        <h2 className="card-title">Worum geht&apos;s heute?</h2>
+        <p className="card-subtitle">
+          Stichworte, Anlass oder eine grobe Idee — Claude formuliert daraus
+          drei Varianten.
+        </p>
+      </div>
+      <label className="field">
+        <span className="field-label">Thema oder Anlass</span>
         <textarea
           value={thema}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Stichworte, Anlass, Idee …"
+          placeholder="Beispiel: Heute haben wir unsere neue Pricing-Seite gelauncht. Drei Erkenntnisse aus der Recherche möchte ich teilen."
         />
       </label>
-      <button onClick={onSubmit} disabled={loading || !thema.trim()}>
-        {loading ? "Generiere …" : "3 Varianten generieren"}
-      </button>
+      <div className="submit-row">
+        <button onClick={onSubmit} disabled={loading || !thema.trim()}>
+          {loading ? (
+            <>
+              <span className="spinner" aria-hidden="true" />
+              Generiere…
+            </>
+          ) : (
+            "3 Varianten generieren"
+          )}
+        </button>
+      </div>
     </section>
   );
 }
