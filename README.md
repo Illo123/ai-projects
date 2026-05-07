@@ -1,84 +1,67 @@
 # AI Projects by Ilyas
 
-Produktionsreife Web-Apps mit KI-Integration — gebaut mit Flask, Next.js und der Anthropic API.  
-Jedes Projekt ist live deployed, rate-limited und zeigt einen konkreten Anwendungsfall.
-Drei Web-Apps die ich gebaut habe um zu zeigen, was mit der Anthropic API 
-in kurzer Zeit möglich ist — von der Idee bis live deployed.
-
-Jedes Projekt löst ein echtes Problem, hat Rate-Limiting, läuft in Production 
-und wurde von einer Person gebaut: mir.
+Production-ready web applications integrated with AI, built using Flask, Next.js, and the Anthropic API. Each project demonstrates a specific use case, featuring live streaming, rate-limiting, and real-world utility.
 
 ---
 
-## Projekte
+## Setup Instructions
 
-### 🟢 LehrerBrief — KI-Schreibassistent für Lehrkräfte
-**[Live-Demo](https://lehrerbrief.onrender.com)** · [`02-textgenerator/`](./02-textgenerator)
+### Prerequisites
+- Python 3.x
+- Node.js & npm
+- `ANTHROPIC_API_KEY` set as an environment variable.
 
-Lehrkräfte generieren in Sekunden professionelle Briefe an Eltern, Schulleitung oder Kollegen — mit passendem Ton, Anrede und Grußformel. Der Text wird per Server-Sent Events live in die UI gestreamt.
+### Project-Specific Setup
 
-| Stack | Details |
-|-------|---------|
-| Backend | Flask, Anthropic SDK, flask-limiter |
-| Frontend | Vanilla JS/CSS, SSE Streaming |
-| Modell | Claude Haiku (kosteneffizient, < €0.01 pro Brief) |
-| Schutz | 5 Briefe/h · 20/d pro IP + Spending-Limit |
+#### 01-chatbot (Mathewes Coffee & Deli)
+1. Navigate to the directory: `cd 01-chatbot`
+2. Install dependencies: `pip install -r requirements.txt`
+3. Initialize the database: `python setup_db.py`
+4. Run the app: `python app.py` (Default port: 5000)
 
----
+#### 02-textgenerator (LehrerBrief)
+1. Navigate to the directory: `cd 02-textgenerator`
+2. Install dependencies: `pip install -r requirements.txt`
+3. Run the app: `python app.py` (Default port: 5001)
 
-### 🟢 Mathewes Coffee & Deli — Gastro-Website mit KI-Assistent
-**[Live-Demo](https://mathewes.onrender.com)** · [`01-chatbot/`](./01-chatbot)
-
-Vollständige Landing-Page für einen Hamburger Gastro-Betrieb mit eingebettetem Chat-Assistenten. Claude erhält Öffnungszeiten, Preise und FAQs per Request direkt aus einer SQLite-DB — Änderungen wirken sofort ohne Redeploy.
-
-| Stack | Details |
-|-------|---------|
-| Backend | Flask, Anthropic SDK, SQLite, flask-limiter |
-| Frontend | Vanilla JS/CSS, GSAP, Lenis Smooth Scroll |
-| Modell | Claude Haiku |
-| Schutz | 10 Nachrichten/h · 40/d pro IP + Spending-Limit |
+#### 03-postblitz (PostBlitz)
+1. Navigate to the directory: `cd 03-postblitz`
+2. Install dependencies: `npm install`
+3. Run the development server: `npm run dev` (Default port: 3000)
 
 ---
 
-### 🟢 PostBlitz — LinkedIn-Posts auf Knopfdruck
-**[Live-Demo](https://postblitz.onrender.com)** · [`03-postblitz/`](./03-postblitz)
+## Tasks
 
-Aus Rolle, Zielgruppe und einem Tagesthema generiert Claude drei fertige Post-Varianten — direkt zum Kopieren. Der Server ist zustandslos, das Nutzerprofil liegt im Browser.
+### 🟢 Mathewes Coffee & Deli — Gastro Website with AI Assistant
+**Directory:** [`01-chatbot/`](./01-chatbot)
 
-| Stack | Details |
-|-------|---------|
-| Backend | Next.js API Routes, Anthropic SDK |
-| Frontend | React 19, TypeScript, App Router |
-| Modell | Claude Sonnet 4.6 |
-| Schutz | 10 Anfragen/h · 30/d pro IP + Spending-Limit |
+A full landing page for a Hamburg-based catering business featuring an embedded chat assistant. Claude retrieves opening hours, prices, and FAQs directly from a SQLite database.
 
----
+- **Stack:** Flask, Anthropic SDK, SQLite, flask-limiter, GSAP, Lenis Smooth Scroll
+- **Model:** Claude Haiku
 
-## Lokale Entwicklung
+### 🟢 LehrerBrief — AI Writing Assistant for Teachers
+**Directory:** [`02-textgenerator/`](./02-textgenerator)
 
-Voraussetzung: `ANTHROPIC_API_KEY` als Umgebungsvariable gesetzt.
+Enables teachers to generate professional letters to parents, administration, or colleagues in seconds. Features live text streaming via Server-Sent Events.
 
-```bash
-# LehrerBrief (http://localhost:5001)
-cd 02-textgenerator
-pip install -r requirements.txt
-python app.py
+- **Stack:** Flask, Anthropic SDK, flask-limiter, Vanilla JS/CSS
+- **Model:** Claude Haiku
 
-# Mathewes Chatbot (http://localhost:5000)
-cd 01-chatbot
-python setup_db.py   # SQLite-DB initialisieren
-python app.py
+### 🟢 PostBlitz — LinkedIn Posts at the Touch of a Button
+**Directory:** [`03-postblitz/`](./03-postblitz)
 
-# PostBlitz (http://localhost:3000)
-cd 03-postblitz
-npm install
-npm run dev
-```
+Generates three LinkedIn post variants based on user role, target audience, and topic. Fully stateless on the server with user profiles stored locally in the browser.
 
-> **Hinweis:** Alle drei Apps laufen auf Render Free Tier. Nach 15 Min Inaktivität schläft der Service — der erste Request kann ~30 Sekunden dauern.
+- **Stack:** Next.js, React 19, TypeScript, Anthropic SDK
+- **Model:** Claude Sonnet 4.6
 
 ---
 
-## Über mich
+## About
+Built by Ilyas, an AI Developer based in Hamburg, focused on creating fast-to-deploy LLM integrations that solve real problems.
 
-Ich bin Ilyas — AI Developer aus Hamburg. Ich baue Web-Apps und LLM-Integrationen die schnell live gehen und echte Probleme lösen.  
+---
+
+[Deutsche Version (German Version)](./README.de.md)
