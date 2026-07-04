@@ -49,6 +49,12 @@ TON = {
     'sachlich':   'sachlich und klar, ohne Floskeln',
 }
 
+LAENGE = {
+    'kurz':   'Halte den Brief bewusst kurz und knapp (ca. 80-120 Wörter).',
+    'mittel': 'Schreibe den Brief in mittlerer Länge (ca. 150-220 Wörter).',
+    'lang':   'Schreibe einen ausführlichen, sorgfältig begründeten Brief (ca. 250-350 Wörter).',
+}
+
 EMPFAENGER_ANREDE = {
     'eltern':       'Sehr geehrte Damen und Herren / Sehr geehrte Erziehungsberechtigte',
     'schulleitung': 'Sehr geehrte Schulleitung',
@@ -69,6 +75,7 @@ def generieren():
     ton         = data.get('ton', 'freundlich')
     absender    = data.get('absender', '')
     klasse      = data.get('klasse', '')
+    laenge      = data.get('laenge', 'mittel')
 
     if not details:
         return {'error': 'Keine Details angegeben'}, 400
@@ -77,10 +84,12 @@ def generieren():
     typ_text    = vorlagen.get(texttyp, list(vorlagen.values())[0])
     ton_text    = TON.get(ton, TON['freundlich'])
     anrede      = EMPFAENGER_ANREDE.get(empfänger, '')
+    laenge_text = LAENGE.get(laenge, LAENGE['mittel'])
 
     prompt = f"""Du bist Lehrer/in an einer deutschen Schule und schreibst {typ_text} an: {empfänger}.
 
 Ton: {ton_text}
+Länge: {laenge_text}
 Anrede: {anrede}
 {"Klasse/Schüler: " + klasse if klasse else ""}
 {"Absender (Unterschrift): " + absender if absender else "Absender: [Lehrername]"}
@@ -90,7 +99,8 @@ Inhalt und Anlass:
 
 Schreibe einen vollständigen, professionellen Brief auf Deutsch.
 Beginne direkt mit der Anrede — kein einleitender Kommentar.
-Nutze einen passenden Betreff. Achte auf korrekte Grußformel und Unterschrift."""
+Nutze einen passenden Betreff (beginne diese Zeile mit "Betreff: ").
+Achte auf korrekte Grußformel und Unterschrift."""
 
     def stream():
         with client.messages.stream(

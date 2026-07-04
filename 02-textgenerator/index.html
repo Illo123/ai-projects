@@ -78,7 +78,19 @@
         </div>
 
         <div class="field">
-          <label for="details">Inhalt & Anlass <span class="required">*</span></label>
+          <label>Länge</label>
+          <div class="seg" id="laengeSeg" role="group" aria-label="Länge des Briefs">
+            <button type="button" class="seg-btn" data-value="kurz">Kurz</button>
+            <button type="button" class="seg-btn active" data-value="mittel">Mittel</button>
+            <button type="button" class="seg-btn" data-value="lang">Lang</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="label-row">
+            <label for="details">Inhalt & Anlass <span class="required">*</span></label>
+            <span class="char-counter" id="detailsCount">0 Zeichen</span>
+          </div>
           <textarea
             id="details"
             placeholder="Was soll der Brief beinhalten? Je mehr Details, desto besser das Ergebnis.&#10;&#10;z. B.: Max fehlt seit 3 Tagen unentschuldigt. Bitte um Kontaktaufnahme bis Freitag."
@@ -98,6 +110,7 @@
         </svg>
         <span class="btn-text">Brief generieren</span>
       </button>
+      <p class="kbd-hint"><kbd>⌘</kbd> + <kbd>↵</kbd> zum Generieren</p>
 
     </section>
 
@@ -116,6 +129,18 @@
               <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
             </svg>
             Kopieren
+          </button>
+          <button class="action-btn" id="downloadBtn" title="Als .txt herunterladen">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+            </svg>
+            .txt
+          </button>
+          <button class="action-btn" id="printBtn" title="Drucken oder als PDF speichern">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2M6 14h12v8H6z"/>
+            </svg>
+            PDF
           </button>
           <button class="action-btn" id="newBtn">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
