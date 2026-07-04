@@ -46,7 +46,7 @@ export async function POST(req: Request) {
   const stream = client.messages.stream({
     model: "claude-haiku-4-5",
     max_tokens: 2048,
-    system: buildSystemPrompt(body.profile),
+    system: buildSystemPrompt(body.profile, body.options),
     messages: [{ role: "user", content: buildUserPrompt(body.thema) }],
   });
 
