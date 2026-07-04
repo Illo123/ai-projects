@@ -11,3 +11,12 @@ env/
 .idea/
 .vscode/
 .claude/settings.local.json
+
+# Node / frontend artifacts
+node_modules/
+.next/
+dist/
+build/
+
+# Local AI assistant/tooling artifacts
+.claude/
