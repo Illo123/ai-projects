@@ -10,11 +10,17 @@ const resultActions = document.getElementById('resultActions');
 const emptyState    = document.getElementById('emptyState');
 const wordCount     = document.getElementById('wordCount');
 const copyBtn       = document.getElementById('copyBtn');
+const downloadBtn   = document.getElementById('downloadBtn');
+const printBtn      = document.getElementById('printBtn');
 const newBtn        = document.getElementById('newBtn');
 const typeList      = document.getElementById('typeList');
+const laengeSeg     = document.getElementById('laengeSeg');
+const detailsInput  = document.getElementById('details');
+const detailsCount  = document.getElementById('detailsCount');
 
 let selectedEmpfänger = 'eltern';
 let selectedType      = '';
+let selectedLaenge    = 'mittel';
 let fullText          = '';
 
 // Vorlagen pro Empfänger
@@ -79,6 +85,37 @@ function renderTypeList() {
 renderTypeList();
 
 // ===========================
+// LÄNGE (segmented control)
+// ===========================
+laengeSeg.querySelectorAll('.seg-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    laengeSeg.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedLaenge = btn.dataset.value;
+  });
+});
+
+// ===========================
+// ZEICHENZÄHLER
+// ===========================
+function updateCount() {
+  const n = detailsInput.value.length;
+  detailsCount.textContent = `${n} Zeichen`;
+}
+detailsInput.addEventListener('input', updateCount);
+updateCount();
+
+// ===========================
+// TASTENKÜRZEL — ⌘/Strg + Enter
+// ===========================
+detailsInput.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !generateBtn.disabled) {
+    e.preventDefault();
+    generieren();
+  }
+});
+
+// ===========================
 // GENERIEREN
 // ===========================
 generateBtn.addEventListener('click', generieren);
@@ -125,7 +162,7 @@ async function generieren() {
     const response = await fetch('/generieren', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ empfänger: selectedEmpfänger, texttyp: selectedType, details, ton, absender, klasse }),
+      body: JSON.stringify({ empfänger: selectedEmpfänger, texttyp: selectedType, details, ton, absender, klasse, laenge: selectedLaenge }),
     });
 
     const reader  = response.body.getReader();
@@ -180,6 +217,45 @@ copyBtn.addEventListener('click', async () => {
     copyBtn.classList.remove('copied');
     copyBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:13px;height:13px"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Kopieren`;
   }, 2500);
+});
+
+// ===========================
+// ALS .TXT HERUNTERLADEN
+// ===========================
+downloadBtn.addEventListener('click', () => {
+  if (!fullText) return;
+  const stamp = new Date().toISOString().slice(0, 10);
+  const blob  = new Blob([fullText], { type: 'text/plain;charset=utf-8' });
+  const url   = URL.createObjectURL(blob);
+  const a     = document.createElement('a');
+  a.href = url;
+  a.download = `lehrerbrief-${selectedType || 'brief'}-${stamp}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
+
+// ===========================
+// DRUCKEN / ALS PDF
+// ===========================
+printBtn.addEventListener('click', () => {
+  if (!fullText) return;
+  const win = window.open('', '_blank');
+  if (!win) return;
+  const safe = fullText
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  win.document.write(`<!DOCTYPE html><html lang="de"><head><meta charset="utf-8">
+    <title>LehrerBrief</title>
+    <style>
+      body { font-family: Georgia, 'Times New Roman', serif; max-width: 640px;
+             margin: 3rem auto; padding: 0 1.5rem; line-height: 1.7; color: #1a1a1a;
+             white-space: pre-wrap; }
+      @media print { body { margin: 1.5cm auto; } }
+    </style></head><body>${safe}</body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 300);
 });
 
 // ===========================

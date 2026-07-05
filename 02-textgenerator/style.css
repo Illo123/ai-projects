@@ -209,6 +209,47 @@ select {
 textarea { resize: vertical; min-height: 110px; line-height: 1.65; }
 option { background: var(--ink-2); }
 
+/* LÄNGE — SEGMENTED CONTROL */
+.seg {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 0.25rem; padding: 0.25rem;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border); border-radius: 10px;
+}
+
+.seg-btn {
+  padding: 0.5rem 0.5rem; border: none; border-radius: 7px;
+  background: transparent; color: rgba(245,240,235,0.5);
+  font-size: 0.8rem; font-weight: 500; font-family: var(--font-sans);
+  cursor: pointer; transition: all 0.2s;
+}
+
+.seg-btn:hover { color: var(--paper); }
+
+.seg-btn.active {
+  background: rgba(134,44,53,0.28);
+  color: var(--paper);
+  box-shadow: inset 0 0 0 1px rgba(134,44,53,0.45);
+}
+
+/* LABEL-ROW + ZEICHENZÄHLER */
+.label-row { display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem; }
+.char-counter { font-size: 0.68rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* KEYBOARD HINT */
+.kbd-hint {
+  text-align: center; font-size: 0.72rem; color: var(--muted);
+  margin-top: 0.7rem; display: flex; align-items: center;
+  justify-content: center; gap: 0.35rem;
+}
+
+kbd {
+  font-family: var(--font-sans); font-size: 0.7rem;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--border); border-bottom-width: 2px;
+  border-radius: 5px; padding: 0.05rem 0.35rem; color: rgba(245,240,235,0.6);
+}
+
 /* GENERATE BUTTON */
 .generate-btn {
   display: flex; align-items: center; justify-content: center; gap: 0.7rem;
