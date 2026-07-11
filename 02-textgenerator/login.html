@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LehrerBrief — Anmelden</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .auth-wrap {
+      min-height: calc(100vh - 57px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 2rem 1rem;
+    }
+    .auth-card {
+      width: 100%; max-width: 380px;
+      background: var(--ink-2);
+      border: 1px solid var(--border); border-radius: 16px;
+      padding: 2rem 1.8rem;
+      display: flex; flex-direction: column; gap: 1.4rem;
+    }
+    .auth-tabs { display: flex; gap: 0.25rem; padding: 0.25rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px; }
+    .auth-tab {
+      flex: 1; padding: 0.55rem; border: none; border-radius: 7px;
+      background: transparent; color: rgba(245,240,235,0.5);
+      font-size: 0.82rem; font-weight: 500; font-family: var(--font-sans); cursor: pointer;
+    }
+    .auth-tab.active { background: rgba(134,44,53,0.28); color: var(--paper); box-shadow: inset 0 0 0 1px rgba(134,44,53,0.45); }
+    .auth-form { display: none; flex-direction: column; gap: 1rem; }
+    .auth-form.active { display: flex; }
+    .auth-title { font-family: var(--font-serif); font-size: 1.3rem; font-weight: 700; color: var(--paper); text-align: center; }
+    .auth-error { display: none; font-size: 0.8rem; color: var(--red); background: rgba(134,44,53,0.14); border: 1px solid rgba(134,44,53,0.35); border-radius: 8px; padding: 0.6rem 0.8rem; }
+    .auth-error.active { display: block; }
+  </style>
+</head>
+<body>
+
+  <div class="noise"></div>
+
+  <header class="header">
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-serif">Lehrer</span>
+        <span class="brand-word">Brief</span>
+        <span class="brand-label">KI Schreibassistent</span>
+      </div>
+      <span class="header-badge">Test-Rollout</span>
+    </div>
+  </header>
+
+  <main class="auth-wrap">
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button type="button" class="auth-tab active" data-tab="login">Anmelden</button>
+        <button type="button" class="auth-tab" data-tab="register">Registrieren</button>
+      </div>
+
+      <div class="auth-error" id="authError"></div>
+
+      <form class="auth-form active" id="loginForm">
+        <div class="auth-title">Willkommen zurück</div>
+        <div class="field">
+          <label for="loginEmail">E-Mail</label>
+          <input type="email" id="loginEmail" required autocomplete="email" />
+        </div>
+        <div class="field">
+          <label for="loginPassword">Passwort</label>
+          <input type="password" id="loginPassword" required autocomplete="current-password" />
+        </div>
+        <button type="submit" class="generate-btn"><span class="btn-text">Anmelden</span></button>
+      </form>
+
+      <form class="auth-form" id="registerForm">
+        <div class="auth-title">Konto erstellen</div>
+        <div class="field">
+          <label for="registerEmail">E-Mail</label>
+          <input type="email" id="registerEmail" required autocomplete="email" />
+        </div>
+        <div class="field">
+          <label for="registerPassword">Passwort</label>
+          <input type="password" id="registerPassword" required minlength="8" autocomplete="new-password" />
+        </div>
+        <div class="field">
+          <label for="inviteCode">Einladungscode</label>
+          <input type="text" id="inviteCode" required autocomplete="off" />
+        </div>
+        <button type="submit" class="generate-btn"><span class="btn-text">Registrieren</span></button>
+      </form>
+    </div>
+  </main>
+
+  <script>
+    const tabs        = document.querySelectorAll('.auth-tab');
+    const forms        = { login: document.getElementById('loginForm'), register: document.getElementById('registerForm') };
+    const authError     = document.getElementById('authError');
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        Object.values(forms).forEach(f => f.classList.remove('active'));
+        forms[tab.dataset.tab].classList.add('active');
+        authError.classList.remove('active');
+      });
+    });
+
+    function showError(msg) {
+      authError.textContent = msg;
+      authError.classList.add('active');
+    }
+
+    async function submitAuth(url, body) {
+      authError.classList.remove('active');
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showError(data.error || 'Ein Fehler ist aufgetreten');
+          return;
+        }
+        window.location.href = '/';
+      } catch {
+        showError('Verbindung zum Server fehlgeschlagen');
+      }
+    }
+
+    forms.login.addEventListener('submit', (e) => {
+      e.preventDefault();
+      submitAuth('/api/login', {
+        email:    document.getElementById('loginEmail').value.trim(),
+        password: document.getElementById('loginPassword').value,
+      });
+    });
+
+    forms.register.addEventListener('submit', (e) => {
+      e.preventDefault();
+      submitAuth('/api/register', {
+        email:       document.getElementById('registerEmail').value.trim(),
+        password:    document.getElementById('registerPassword').value,
+        invite_code: document.getElementById('inviteCode').value.trim(),
+      });
+    });
+  </script>
+</body>
+</html>

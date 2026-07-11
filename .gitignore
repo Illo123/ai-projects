@@ -20,3 +20,6 @@ build/
 
 # Local AI assistant/tooling artifacts
 .claude/
+
+# 02-textgenerator: user DB has password hashes, unlike the committed mathewes.db
+02-textgenerator/lehrerbrief.db

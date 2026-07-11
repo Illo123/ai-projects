@@ -23,6 +23,25 @@ let selectedType      = '';
 let selectedLaenge    = 'mittel';
 let fullText          = '';
 
+// ===========================
+// AUTH — WER IST EINGELOGGT?
+// ===========================
+(async function checkAuth() {
+  try {
+    const res = await fetch('/me');
+    if (!res.ok) { window.location.href = '/login'; return; }
+    const { email } = await res.json();
+    document.getElementById('userEmail').textContent = email;
+  } catch {
+    window.location.href = '/login';
+  }
+})();
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await fetch('/api/logout', { method: 'POST' });
+  window.location.href = '/login';
+});
+
 // Vorlagen pro Empfänger
 const VORLAGEN = {
   eltern: [

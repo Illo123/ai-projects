@@ -1,21 +1,62 @@
-from flask import Flask, request, Response, send_from_directory
+from flask import Flask, request, Response, send_from_directory, session, redirect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
 import anthropic
 import json
+import os
+import secrets
+import sqlite3
 
-app = Flask(__name__, static_folder='.', static_url_path='')
+# static_folder=None: this app's directory now holds lehrerbrief.db (password hashes) and
+# app.py source, so we don't want Flask's catch-all static route serving every file in '.'.
+# Instead each asset actually needed by the frontend gets its own explicit route below.
+app = Flask(__name__, static_folder=None)
+
+_secret_key = os.environ.get('SECRET_KEY')
+if not _secret_key:
+    # No hardcoded fallback: a fixed secret in source would let anyone forge session
+    # cookies. A fresh random key per process just means sessions reset on restart —
+    # fine for local/dev, but set SECRET_KEY in the environment for real deployments.
+    _secret_key = secrets.token_hex(32)
+    print('WARNUNG: SECRET_KEY nicht gesetzt — nutze zufälligen Schlüssel für diesen Prozess. '
+          'Für Produktion SECRET_KEY als Env-Var setzen, sonst gehen Sessions bei jedem Neustart verloren.')
+app.secret_key = _secret_key
 # Render terminates TLS and sets X-Forwarded-For — trust one hop so rate-limit keys use the real client IP.
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
+
+def rate_limit_key():
+    user_id = session.get('user_id')
+    return f"user:{user_id}" if user_id else get_remote_address()
+
+
 limiter = Limiter(
-    key_func=get_remote_address,
+    key_func=rate_limit_key,
     app=app,
     default_limits=['60 per hour'],
 )
 
 client = anthropic.Anthropic()
+
+
+def get_db():
+    # isolation_level=None -> autocommit for plain reads; register() opens an explicit
+    # BEGIN IMMEDIATE transaction itself where it needs to avoid a race on invite codes.
+    conn = sqlite3.connect('lehrerbrief.db', isolation_level=None)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get('user_id'):
+            return {'error': 'Nicht angemeldet'}, 401
+        return f(*args, **kwargs)
+    return decorated
 
 VORLAGEN = {
     'eltern': {
@@ -63,9 +104,103 @@ EMPFAENGER_ANREDE = {
 
 @app.route('/')
 def index():
+    if not session.get('user_id'):
+        return redirect('/login')
     return send_from_directory('.', 'index.html')
 
+@app.route('/login')
+def login_page():
+    return send_from_directory('.', 'login.html')
+
+@app.route('/style.css')
+def style_css():
+    return send_from_directory('.', 'style.css')
+
+@app.route('/script.js')
+def script_js():
+    return send_from_directory('.', 'script.js')
+
+@app.route('/api/register', methods=['POST'])
+def register():
+    data         = request.get_json()
+    email        = (data.get('email') or '').strip().lower()
+    password     = data.get('password') or ''
+    invite_code  = (data.get('invite_code') or '').strip()
+
+    if not email or not password or not invite_code:
+        return {'error': 'E-Mail, Passwort und Einladungscode sind erforderlich'}, 400
+    if len(password) < 8:
+        return {'error': 'Passwort muss mindestens 8 Zeichen lang sein'}, 400
+
+    password_hash = generate_password_hash(password, method='pbkdf2:sha256')
+
+    db = get_db()
+    try:
+        # BEGIN IMMEDIATE takes the write lock up front, so a second concurrent
+        # registration with the same invite code blocks here instead of racing the
+        # SELECT-then-UPDATE below and slipping two accounts through on one code.
+        db.execute('BEGIN IMMEDIATE')
+
+        code_row = db.execute('SELECT used_by FROM invite_codes WHERE code = ?', (invite_code,)).fetchone()
+        if not code_row:
+            db.execute('ROLLBACK')
+            return {'error': 'Ungültiger Einladungscode'}, 400
+        if code_row['used_by'] is not None:
+            db.execute('ROLLBACK')
+            return {'error': 'Dieser Einladungscode wurde bereits verwendet'}, 400
+
+        existing = db.execute('SELECT id FROM users WHERE email = ?', (email,)).fetchone()
+        if existing:
+            db.execute('ROLLBACK')
+            return {'error': 'Diese E-Mail ist bereits registriert'}, 400
+
+        cursor = db.execute(
+            'INSERT INTO users (email, password_hash) VALUES (?, ?)',
+            (email, password_hash),
+        )
+        user_id = cursor.lastrowid
+        db.execute(
+            "UPDATE invite_codes SET used_by = ?, used_at = datetime('now') WHERE code = ?",
+            (user_id, invite_code),
+        )
+        db.execute('COMMIT')
+    finally:
+        db.close()
+
+    session['user_id'] = user_id
+    session['email']   = email
+    return {'email': email}
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    data     = request.get_json()
+    email    = (data.get('email') or '').strip().lower()
+    password = data.get('password') or ''
+
+    db   = get_db()
+    user = db.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
+    db.close()
+
+    if not user or not check_password_hash(user['password_hash'], password):
+        return {'error': 'E-Mail oder Passwort ist falsch'}, 401
+
+    session['user_id'] = user['id']
+    session['email']   = user['email']
+    return {'email': user['email']}
+
+@app.route('/api/logout', methods=['POST'])
+def logout():
+    session.clear()
+    return {'ok': True}
+
+@app.route('/me')
+def me():
+    if not session.get('user_id'):
+        return {'error': 'Nicht angemeldet'}, 401
+    return {'email': session.get('email')}
+
 @app.route('/generieren', methods=['POST'])
+@login_required
 @limiter.limit('5 per hour; 20 per day')
 def generieren():
     data        = request.get_json()
@@ -104,7 +239,7 @@ Achte auf korrekte Grußformel und Unterschrift."""
 
     def stream():
         with client.messages.stream(
-            model='claude-haiku-4-5-20251001',
+            model='claude-sonnet-5',
             max_tokens=1200,
             messages=[{'role': 'user', 'content': prompt}],
         ) as s:
