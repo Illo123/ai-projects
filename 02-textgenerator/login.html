@@ -14,11 +14,17 @@
       padding: 2rem 1rem;
     }
     .auth-card {
+      position: relative; overflow: hidden;
       width: 100%; max-width: 380px;
       background: var(--ink-2);
       border: 1px solid var(--border); border-radius: 16px;
-      padding: 2rem 1.8rem;
+      padding: 2.2rem 1.8rem 2rem;
       display: flex; flex-direction: column; gap: 1.4rem;
+      box-shadow: 0 20px 60px -20px rgba(0,0,0,0.7);
+    }
+    .auth-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--red), var(--amber));
     }
     .auth-tabs { display: flex; gap: 0.25rem; padding: 0.25rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px; }
     .auth-tab {
