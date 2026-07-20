@@ -41,6 +41,15 @@ limiter = Limiter(
 
 client = anthropic.Anthropic()
 
+# Founder/demo backdoor: logs in with this exact email+password pair regardless of
+# what's in the users table, so access never depends on the (non-persistent-on-Render)
+# SQLite file surviving a redeploy. Unset in the environment -> feature is fully off.
+MASTER_EMAIL    = (os.environ.get('MASTER_EMAIL') or '').strip().lower()
+MASTER_PASSWORD = os.environ.get('MASTER_PASSWORD')
+if bool(MASTER_EMAIL) != bool(MASTER_PASSWORD):
+    print('WARNUNG: Nur MASTER_EMAIL oder nur MASTER_PASSWORD gesetzt — Master-Login bleibt '
+          'deaktiviert, bis beide Env-Vars gesetzt sind.')
+
 
 def get_db():
     # isolation_level=None -> autocommit for plain reads; register() opens an explicit
@@ -176,6 +185,12 @@ def login():
     data     = request.get_json()
     email    = (data.get('email') or '').strip().lower()
     password = data.get('password') or ''
+
+    if (MASTER_EMAIL and MASTER_PASSWORD and email == MASTER_EMAIL
+            and secrets.compare_digest(password, MASTER_PASSWORD)):
+        session['user_id'] = 'master'
+        session['email']   = email
+        return {'email': email}
 
     db   = get_db()
     user = db.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
