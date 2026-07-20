@@ -18,10 +18,37 @@ const laengeSeg     = document.getElementById('laengeSeg');
 const detailsInput  = document.getElementById('details');
 const detailsCount  = document.getElementById('detailsCount');
 
+// Profil-Modal
+const profileBtn        = document.getElementById('profileBtn');
+const profileOverlay    = document.getElementById('profileOverlay');
+const profileName       = document.getElementById('profileName');
+const profileSchule     = document.getElementById('profileSchule');
+const profileTon        = document.getElementById('profileTon');
+const profileLaenge     = document.getElementById('profileLaenge');
+const profileSaveBtn    = document.getElementById('profileSaveBtn');
+const profileCancelBtn  = document.getElementById('profileCancelBtn');
+
+// Verlauf-Panel
+const historyBtn       = document.getElementById('historyBtn');
+const historyOverlay   = document.getElementById('historyOverlay');
+const historyList      = document.getElementById('historyList');
+const historyCloseBtn  = document.getElementById('historyCloseBtn');
+const historyClearBtn  = document.getElementById('historyClearBtn');
+
 let selectedEmpfänger = 'eltern';
 let selectedType      = '';
 let selectedLaenge    = 'mittel';
 let fullText          = '';
+
+// ===========================
+// LABELS (für Ergebnis-Meta UND Verlauf — eine Quelle der Wahrheit)
+// ===========================
+const EMPFÄNGER_LABEL = { eltern: '👨‍👩‍👧 Eltern', schulleitung: '🏫 Schulleitung', kollegen: '👥 Kollegen' };
+const TON_LABEL       = { freundlich: '😊 Freundlich', formell: '🎩 Formell', sachlich: '📋 Sachlich' };
+
+function typLabelFor(empfänger, texttyp) {
+  return VORLAGEN[empfänger]?.find(v => v.value === texttyp)?.label || '';
+}
 
 // ===========================
 // AUTH — WER IST EINGELOGGT?
@@ -81,14 +108,16 @@ document.querySelectorAll('.recipient-btn').forEach(btn => {
   });
 });
 
-function renderTypeList() {
+function renderTypeList(preselect) {
   const vorlagen = VORLAGEN[selectedEmpfänger] || [];
   typeList.innerHTML = '';
-  selectedType = vorlagen[0]?.value || '';
+  const preselectIndex = preselect ? vorlagen.findIndex(v => v.value === preselect) : -1;
+  const activeIndex    = preselectIndex >= 0 ? preselectIndex : 0;
+  selectedType = vorlagen[activeIndex]?.value || '';
 
   vorlagen.forEach((v, i) => {
     const btn = document.createElement('button');
-    btn.className = 'type-btn' + (i === 0 ? ' active' : '');
+    btn.className = 'type-btn' + (i === activeIndex ? ' active' : '');
     btn.dataset.value = v.value;
     btn.textContent = v.label;
     btn.addEventListener('click', () => {
@@ -144,6 +173,7 @@ async function generieren() {
   const klasse   = document.getElementById('klasse').value.trim();
   const ton      = document.getElementById('ton').value;
   const absender = document.getElementById('absender').value.trim();
+  const schule   = (loadProfile().schule || '').trim();
 
   if (!details) {
     const ta = document.getElementById('details');
@@ -166,14 +196,12 @@ async function generieren() {
   wordCount.textContent      = '';
 
   // Meta-Tags
-  const empfängerLabel = { eltern: '👨‍👩‍👧 Eltern', schulleitung: '🏫 Schulleitung', kollegen: '👥 Kollegen' };
-  const tonLabel       = { freundlich: '😊 Freundlich', formell: '🎩 Formell', sachlich: '📋 Sachlich' };
-  const typLabel       = VORLAGEN[selectedEmpfänger]?.find(v => v.value === selectedType)?.label || '';
+  const typLabel = typLabelFor(selectedEmpfänger, selectedType);
 
   resultMeta.innerHTML = `
-    <span class="meta-tag highlight">${empfängerLabel[selectedEmpfänger]}</span>
+    <span class="meta-tag highlight">${EMPFÄNGER_LABEL[selectedEmpfänger]}</span>
     <span class="meta-tag">${typLabel}</span>
-    <span class="meta-tag">${tonLabel[ton]}</span>
+    <span class="meta-tag">${TON_LABEL[ton]}</span>
   `;
 
   // API-Anfrage
@@ -181,7 +209,7 @@ async function generieren() {
     const response = await fetch('/generieren', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ empfänger: selectedEmpfänger, texttyp: selectedType, details, ton, absender, klasse, laenge: selectedLaenge }),
+      body: JSON.stringify({ empfänger: selectedEmpfänger, texttyp: selectedType, details, ton, absender, klasse, laenge: selectedLaenge, schule }),
     });
 
     const reader  = response.body.getReader();
@@ -213,6 +241,17 @@ async function generieren() {
     const wörter = fullText.trim().split(/\s+/).length;
     wordCount.textContent   = `${wörter} Wörter · Direkt kopieren und anpassen`;
     resultActions.style.display = 'flex';
+
+    if (fullText.trim()) {
+      saveToHistory({
+        id: crypto.randomUUID(),
+        ts: Date.now(),
+        empfänger: selectedEmpfänger,
+        texttyp: selectedType,
+        ton, laenge: selectedLaenge, klasse, details,
+        fullText,
+      });
+    }
 
   } catch {
     resultText.className   = 'result-text';
@@ -281,3 +320,200 @@ printBtn.addEventListener('click', () => {
 // NEU GENERIEREN
 // ===========================
 newBtn.addEventListener('click', generieren);
+
+// ===========================
+// PROFIL — lokale Defaults (localStorage)
+// ===========================
+const PROFILE_KEY = 'lehrerbrief.profile';
+
+function loadProfile() {
+  try {
+    return JSON.parse(localStorage.getItem(PROFILE_KEY)) || {};
+  } catch {
+    return {};
+  }
+}
+
+function applyProfileToForm(profile) {
+  if (profile.name) document.getElementById('absender').value = profile.name;
+
+  if (profile.defaultTon) document.getElementById('ton').value = profile.defaultTon;
+
+  if (profile.defaultLaenge) {
+    selectedLaenge = profile.defaultLaenge;
+    laengeSeg.querySelectorAll('.seg-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.value === profile.defaultLaenge);
+    });
+  }
+
+  if (profile.defaultEmpfänger && VORLAGEN[profile.defaultEmpfänger]) {
+    selectedEmpfänger = profile.defaultEmpfänger;
+    document.querySelectorAll('.recipient-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.value === profile.defaultEmpfänger);
+    });
+    renderTypeList();
+  }
+}
+
+function openProfileModal() {
+  const profile = loadProfile();
+  profileName.value    = profile.name    || '';
+  profileSchule.value  = profile.schule  || '';
+  profileTon.value     = profile.defaultTon    || 'freundlich';
+  profileLaenge.value  = profile.defaultLaenge || 'mittel';
+  profileOverlay.style.display = 'flex';
+}
+
+function closeProfileModal() {
+  profileOverlay.style.display = 'none';
+}
+
+profileBtn.addEventListener('click', openProfileModal);
+profileCancelBtn.addEventListener('click', closeProfileModal);
+profileOverlay.addEventListener('click', (e) => {
+  if (e.target === profileOverlay) closeProfileModal();
+});
+
+profileSaveBtn.addEventListener('click', () => {
+  const profile = {
+    name:            profileName.value.trim(),
+    schule:          profileSchule.value.trim(),
+    defaultTon:      profileTon.value,
+    defaultLaenge:   profileLaenge.value,
+    defaultEmpfänger: selectedEmpfänger,
+  };
+  localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+  applyProfileToForm(profile);
+  closeProfileModal();
+});
+
+// Profil beim Laden der Seite anwenden
+applyProfileToForm(loadProfile());
+
+// ===========================
+// VERLAUF — gespeicherte Briefe (localStorage)
+// ===========================
+const HISTORY_KEY = 'lehrerbrief.history';
+const HISTORY_MAX = 50;
+
+function loadHistory() {
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(entries) {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(entries));
+}
+
+function saveToHistory(entry) {
+  const entries = [entry, ...loadHistory()].slice(0, HISTORY_MAX);
+  saveHistory(entries);
+}
+
+function formatHistoryDate(ts) {
+  return new Date(ts).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+}
+
+function renderHistoryList() {
+  const entries = loadHistory();
+  historyList.innerHTML = '';
+
+  if (entries.length === 0) {
+    historyList.innerHTML = '<p class="history-empty">Noch keine Briefe generiert.</p>';
+    return;
+  }
+
+  entries.forEach(entry => {
+    const typLabel = typLabelFor(entry.empfänger, entry.texttyp);
+    const item = document.createElement('div');
+    item.className = 'history-item';
+    item.innerHTML = `
+      <div class="history-item-title">${typLabel} · ${formatHistoryDate(entry.ts)}</div>
+      <div class="history-item-preview">${entry.fullText.slice(0, 80).replace(/</g, '&lt;')}…</div>
+      <div class="history-item-actions">
+        <button class="action-btn" data-action="open" data-id="${entry.id}">Öffnen</button>
+        <button class="action-btn" data-action="delete" data-id="${entry.id}">Löschen</button>
+      </div>
+    `;
+    historyList.appendChild(item);
+  });
+}
+
+function openHistoryEntry(id) {
+  const entry = loadHistory().find(e => e.id === id);
+  if (!entry) return;
+
+  // Formular wieder befüllen
+  selectedEmpfänger = entry.empfänger;
+  document.querySelectorAll('.recipient-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.value === entry.empfänger);
+  });
+  renderTypeList(entry.texttyp);
+
+  document.getElementById('ton').value    = entry.ton;
+  document.getElementById('klasse').value = entry.klasse || '';
+  document.getElementById('details').value = entry.details || '';
+  updateCount();
+
+  selectedLaenge = entry.laenge;
+  laengeSeg.querySelectorAll('.seg-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.value === entry.laenge);
+  });
+
+  // Ergebnis wiederherstellen
+  fullText = entry.fullText;
+  emptyState.style.display    = 'none';
+  resultBox.style.display     = 'flex';
+  resultText.className        = 'result-text';
+  resultText.textContent      = fullText;
+  const wörter = fullText.trim().split(/\s+/).length;
+  wordCount.textContent        = `${wörter} Wörter · Direkt kopieren und anpassen`;
+  resultActions.style.display = 'flex';
+
+  const typLabel = typLabelFor(entry.empfänger, entry.texttyp);
+  resultMeta.innerHTML = `
+    <span class="meta-tag highlight">${EMPFÄNGER_LABEL[entry.empfänger]}</span>
+    <span class="meta-tag">${typLabel}</span>
+    <span class="meta-tag">${TON_LABEL[entry.ton]}</span>
+  `;
+
+  closeHistoryPanel();
+}
+
+function deleteHistoryEntry(id) {
+  saveHistory(loadHistory().filter(e => e.id !== id));
+  renderHistoryList();
+}
+
+function openHistoryPanel() {
+  renderHistoryList();
+  historyOverlay.style.display = 'flex';
+}
+
+function closeHistoryPanel() {
+  historyOverlay.style.display = 'none';
+}
+
+historyBtn.addEventListener('click', openHistoryPanel);
+historyCloseBtn.addEventListener('click', closeHistoryPanel);
+historyOverlay.addEventListener('click', (e) => {
+  if (e.target === historyOverlay) closeHistoryPanel();
+});
+
+historyClearBtn.addEventListener('click', () => {
+  if (loadHistory().length === 0) return;
+  if (!confirm('Wirklich den gesamten Verlauf löschen? Das kann nicht rückgängig gemacht werden.')) return;
+  saveHistory([]);
+  renderHistoryList();
+});
+
+historyList.addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+  const { action, id } = btn.dataset;
+  if (action === 'open') openHistoryEntry(id);
+  if (action === 'delete') deleteHistoryEntry(id);
+});

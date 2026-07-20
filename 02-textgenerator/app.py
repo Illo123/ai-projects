@@ -226,6 +226,7 @@ def generieren():
     absender    = data.get('absender', '')
     klasse      = data.get('klasse', '')
     laenge      = data.get('laenge', 'mittel')
+    schule      = data.get('schule', '')
 
     if not details:
         return {'error': 'Keine Details angegeben'}, 400
@@ -242,6 +243,7 @@ Ton: {ton_text}
 Länge: {laenge_text}
 Anrede: {anrede}
 {"Klasse/Schüler: " + klasse if klasse else ""}
+{"Schule: " + schule if schule else ""}
 {"Absender (Unterschrift): " + absender if absender else "Absender: [Lehrername]"}
 
 Inhalt und Anlass:

@@ -21,6 +21,8 @@
       </div>
       <div class="header-right">
         <span class="header-badge">Für Lehrkräfte</span>
+        <button class="icon-btn" id="historyBtn" title="Verlauf">🕘 Verlauf</button>
+        <button class="icon-btn" id="profileBtn" title="Profil">⚙︎ Profil</button>
         <span class="user-email" id="userEmail"></span>
         <button class="logout-btn" id="logoutBtn" title="Abmelden">Abmelden</button>
       </div>
@@ -177,6 +179,62 @@
     </section>
 
   </main>
+
+  <!-- PROFIL-MODAL -->
+  <div class="modal-overlay" id="profileOverlay" style="display:none">
+    <div class="modal-card">
+      <div class="modal-title">Dein Profil</div>
+      <p class="modal-hint">Wird lokal in diesem Browser gespeichert und automatisch ins Formular übernommen.</p>
+
+      <div class="field">
+        <label for="profileName">Name (Unterschrift)</label>
+        <input type="text" id="profileName" placeholder="z. B. Frau Schmidt" />
+      </div>
+      <div class="field">
+        <label for="profileSchule">Schule</label>
+        <input type="text" id="profileSchule" placeholder="z. B. Gesamtschule Musterstadt" />
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="profileTon">Standard-Ton</label>
+          <select id="profileTon">
+            <option value="freundlich">😊 Freundlich</option>
+            <option value="formell">🎩 Formell</option>
+            <option value="sachlich">📋 Sachlich</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="profileLaenge">Standard-Länge</label>
+          <select id="profileLaenge">
+            <option value="kurz">Kurz</option>
+            <option value="mittel" selected>Mittel</option>
+            <option value="lang">Lang</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="action-btn" id="profileCancelBtn">Abbrechen</button>
+        <button class="generate-btn" id="profileSaveBtn" style="margin-top:0"><span class="btn-text">Speichern</span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- VERLAUF — SLIDE-OVER PANEL -->
+  <div class="modal-overlay history-overlay" id="historyOverlay" style="display:none">
+    <div class="history-panel">
+      <div class="history-header">
+        <div class="modal-title">Verlauf</div>
+        <div class="history-header-actions">
+          <button class="action-btn" id="historyClearBtn">Alles löschen</button>
+          <button class="action-btn" id="historyCloseBtn">Schließen</button>
+        </div>
+      </div>
+      <div class="history-list" id="historyList">
+        <!-- wird per JS befüllt -->
+      </div>
+    </div>
+  </div>
 
   <script src="script.js"></script>
 </body>
